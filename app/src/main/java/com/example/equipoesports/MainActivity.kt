@@ -20,13 +20,19 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.TextAutoSize
+import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -40,107 +46,83 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.equipoesports.ui.theme.EquipoESportsTheme
+import java.util.UUID
 
 class MainActivity : ComponentActivity() {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
+            var listaJugadores = rememberSaveable { mutableStateListOf<Jugador>() }
+
+            listaJugadores.add(Jugador(
+                nombre = "Sharx",
+                nickname = "Trinchas",
+                rol = "Bárbara",
+                edad = 38,
+                nivel = 18
+                ))
+            listaJugadores.add(Jugador(
+                nombre = "Likura",
+                nickname = "Tiff",
+                rol = "Paladín",
+                edad = 32,
+                nivel = 15
+            ))
+            listaJugadores.add(Jugador(
+                nombre = "Marcus",
+                nickname = "Vex",
+                rol = "Brujo",
+                edad = 42,
+                nivel = 16
+            ))
+            listaJugadores.add(Jugador(
+                nombre = "Timaxius",
+                nickname = "Cáos",
+                rol = "Hechicero",
+                edad = 34,
+                nivel = 15
+            ))
+            listaJugadores.add(Jugador(
+                nombre = "Maigrika",
+                nickname = "Jefecita",
+                rol = "Bardo",
+                edad = 40,
+                nivel = 15
+            ))
+
             EquipoESportsTheme {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .statusBarsPadding()
-                        .background(colorResource(R.color.blue_bigboy))
-                        .padding(horizontal = 6.dp)
+                PantallaPrincipal(listaJugadores)
+            }
+        }
+    }
+
+    @Composable
+    fun PantallaPrincipal(
+        listaJugadores: List<Jugador>
+    ){
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .background(colorResource(R.color.blue_bigboy))
+                .padding(horizontal = 6.dp)
+        ) {
+            TextoTitulo("TEAM TITANS")
+
+            BotonAgregarJugador()
+
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+            ) {
+                items(
+                    items = listaJugadores,
+                    key = {jugador -> jugador.id}
                 ){
-                    TextoTitulo("TEAM TITANS")
-
-                    Separador()
-
-                    /*
-                    Decidí intencionalmente cambiar los nombres de los jugadores
-                    mostrados para que mi entrega sea más personalizada. Para los
-                    nombres del resultado aproximado, sacarlos del comentario
-
-                    jugador(
-                        "AlexPro",
-                        "Atacante",
-                        21,
-                        87,
-                        R.drawable.sharx
-                    )
-
-                    separador()
-
-                    jugador(
-                        "ShadowX",
-                        "Defensor",
-                        24,
-                        91,
-                        R.drawable.irostius
-                    )
-
-                    separador()
-
-                    jugador(
-                        "MartaGG",
-                        "Soporte",
-                        20,
-                        84,
-                        R.drawable.baddie
-                    )
-
-
-                    separador()
-
-                    jugador(
-                        "Destroyer",
-                        "Atacante",
-                        23,
-                        89,
-                        R.drawable.belehry
-                    )
-                    */
-
-                    Jugador(
-                        "Sharx",
-                        "Bárbara",
-                        21,
-                        14,
-                        R.drawable.sharx
-                    )
-
-                    Separador()
-
-                    Jugador(
-                        "Irostius",
-                        "Luchador",
-                        43,
-                        15,
-                        R.drawable.irostius
-                    )
-
-                    Separador()
-
-                    Jugador(
-                        "Baddie",
-                        "Clériga",
-                        26,
-                        10,
-                        R.drawable.baddie
-                    )
-
-
-                    Separador()
-
-                    Jugador(
-                        "Belehry",
-                        "Maga",
-                        32,
-                        14,
-                        R.drawable.belehry
-                    )
+                    jugador ->
+                    FichaJugador()
                 }
             }
         }
@@ -154,9 +136,7 @@ class MainActivity : ComponentActivity() {
         ) {
             Text(
                 text = titulo,
-                color =
-                    //colorResource(R.color.purple_cosmic),
-                    MaterialTheme.colorScheme.primary,
+                color = MaterialTheme.colorScheme.primary,
                 style = MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
@@ -183,13 +163,12 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    fun Jugador(
-        nombre: String,
-        rol: String,
-        edad: Int,
-        nivel: Int,
+    fun FichaJugador(
+        jugador: Jugador,
         @DrawableRes foto: Int
     ){
+        Separador()
+
         Row(modifier = Modifier
             .statusBarsPadding()
             .fillMaxWidth()
@@ -208,7 +187,7 @@ class MainActivity : ComponentActivity() {
                 contentAlignment = Alignment.Center
             ) {
                 Image(painter = painterResource(foto),
-                    contentDescription = nombre,
+                    contentDescription = jugador.nombre,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .clip(CircleShape)
@@ -223,14 +202,21 @@ class MainActivity : ComponentActivity() {
                 horizontalAlignment = Alignment.Start
             ) {
                 Text(
-                    text = nombre.uppercase(),
+                    text = jugador.nombre.uppercase(),
                     color = colorResource(R.color.brown_rusty),
                     fontSize = 22.sp,
                     lineHeight = 22.sp,
                     maxLines = 1,
                 )
                 Text(
-                    text = "$edad años",
+                    text = jugador.nickname,
+                    color = colorResource(R.color.brown_rusty),
+                    fontSize = 12.sp,
+                    lineHeight = 14.sp,
+                    maxLines = 1,
+                )
+                Text(
+                    text = "${jugador.edad} años",
                     color = colorResource(R.color.brown_rusty),
                     fontSize = 12.sp,
                     lineHeight = 14.sp
@@ -273,15 +259,33 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    @Preview(showBackground = true)
     @Composable
-    fun JugadorVista(){
-        Jugador(
-            "Kath",
-            "Programadora",
-            26,
-            120,
-            R.drawable.ic_launcher_background
-        )
+    fun BotonAgregarJugador(
+        alAgregar: () -> Unit,
+        alEliminar: () -> Unit,
+    ){
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+        ) {
+            Button(
+                onClick = alAgregar
+            ) {
+                Text("Añadir Jugador")
+            }
+        }
     }
+
+    @Composable
+    fun BotonesFichaJugador(){} //TODO
 }
+
+//DEBERÍA ELIMINAR LOS ATRIBUTOS DE LA PRÁCTICA ANTERIO?????????
+data class Jugador constructor(
+    val id: UUID = UUID.randomUUID(), //Para ids automáticos
+    val nombre: String,
+    val nickname: String,
+    val rol: String,
+    var edad: Int, //Estos dos atributos son heredados de Jugador de la actividad anterior
+    var nivel: Int
+)
