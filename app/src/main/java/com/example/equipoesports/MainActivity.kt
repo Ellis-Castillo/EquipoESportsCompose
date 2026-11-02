@@ -8,16 +8,21 @@ import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -25,6 +30,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
@@ -48,9 +54,9 @@ class MainActivity : ComponentActivity() {
                         .background(colorResource(R.color.blue_bigboy))
                         .padding(horizontal = 6.dp)
                 ){
-                    textoTitulo("TEAM TITANS")
+                    TextoTitulo("TEAM TITANS")
 
-                    separador()
+                    Separador()
 
                     /*
                     Decidí intencionalmente cambiar los nombres de los jugadores
@@ -97,7 +103,7 @@ class MainActivity : ComponentActivity() {
                     )
                     */
 
-                    jugador(
+                    Jugador(
                         "Sharx",
                         "Bárbara",
                         21,
@@ -105,9 +111,9 @@ class MainActivity : ComponentActivity() {
                         R.drawable.sharx
                     )
 
-                    separador()
+                    Separador()
 
-                    jugador(
+                    Jugador(
                         "Irostius",
                         "Luchador",
                         43,
@@ -115,9 +121,9 @@ class MainActivity : ComponentActivity() {
                         R.drawable.irostius
                     )
 
-                    separador()
+                    Separador()
 
-                    jugador(
+                    Jugador(
                         "Baddie",
                         "Clériga",
                         26,
@@ -126,9 +132,9 @@ class MainActivity : ComponentActivity() {
                     )
 
 
-                    separador()
+                    Separador()
 
-                    jugador(
+                    Jugador(
                         "Belehry",
                         "Maga",
                         32,
@@ -141,14 +147,16 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    fun textoTitulo(titulo: String){
+    fun TextoTitulo(titulo: String){
         Row(
             modifier = Modifier
                 .fillMaxWidth()
         ) {
             Text(
-                text = "$titulo",
-                color = colorResource(R.color.purple_cosmic),
+                text = titulo,
+                color =
+                    //colorResource(R.color.purple_cosmic),
+                    MaterialTheme.colorScheme.primary,
                 style = MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
@@ -158,13 +166,13 @@ class MainActivity : ComponentActivity() {
                         colorResource(R.color.gray_neutralviolet),
                         shape = RoundedCornerShape(25)
                     )
-                    .weight(10.0f)
+                    .weight(1f)
             )
         }
     }
 
     @Composable
-    fun separador(){
+    fun Separador(){
         HorizontalDivider(
             modifier = Modifier
                 .padding(6.dp)
@@ -175,7 +183,7 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    fun jugador(
+    fun Jugador(
         nombre: String,
         rol: String,
         edad: Int,
@@ -184,39 +192,42 @@ class MainActivity : ComponentActivity() {
     ){
         Row(modifier = Modifier
             .statusBarsPadding()
+            .fillMaxWidth()
             .background(
                 colorResource(R.color.cream_tawnytan),
                 shape = RoundedCornerShape(50)
             )
             .padding(horizontal = 6.dp)
             .height(108.dp)
-            .fillMaxWidth()
         ){
-            Column(modifier = Modifier
-                .fillMaxHeight()
-                .weight(1f)
-                .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.Center
+            Box(
+                modifier = Modifier
+                    .padding(horizontal = 16.dp)
+                    .fillMaxHeight()
+                    .weight(4f),
+                contentAlignment = Alignment.Center
             ) {
                 Image(painter = painterResource(foto),
-                    contentDescription = "$nombre",
-                    // contentScale = ContentScale.Crop,
-                    //Nota: decidí deshabilitar el ContentScale porque fastidia la forma de la imagen
+                    contentDescription = nombre,
+                    contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .clip(CircleShape)
+                        .size(56.dp)
                 )
             }
             Column(
                 modifier = Modifier
                     .fillMaxHeight()
-                    .weight(1f)
-                    .padding(horizontal = 12.dp, vertical = 12.dp)
+                    .padding(vertical = 12.dp)
+                    .weight(5f),
+                horizontalAlignment = Alignment.Start
             ) {
                 Text(
                     text = nombre.uppercase(),
                     color = colorResource(R.color.brown_rusty),
                     fontSize = 22.sp,
-                    lineHeight = 22.sp
+                    lineHeight = 22.sp,
+                    maxLines = 1,
                 )
                 Text(
                     text = "$edad años",
@@ -225,22 +236,34 @@ class MainActivity : ComponentActivity() {
                     lineHeight = 14.sp
                 )
             }
+
+            Spacer(Modifier.weight(1f))
+
             Column(
                 modifier = Modifier
                     .fillMaxHeight()
-                    .weight(1f)
-                    .padding(horizontal = 24.dp, vertical = 12.dp),
+                    .padding(
+                        top = 12.dp,
+                        bottom = 12.dp,
+                        start = 8.dp,
+                        end = 24.dp
+                    )
+                    .weight(5f),
                 verticalArrangement = Arrangement.Bottom,
                 horizontalAlignment = Alignment.End
             ) {
-                Text(rol,
+                Text(
+                    text = rol,
                     textAlign = TextAlign.Right,
                     color = colorResource(R.color.brown_rusty),
                     fontSize = 18.sp,
                     fontStyle = FontStyle.Italic,
-                    lineHeight = 22.sp
+                    lineHeight = 22.sp,
+                    maxLines = 1,
                 )
-                Text("Lvl" + nivel,
+
+                Text(
+                    text = "Lvl$nivel",
                     textAlign = TextAlign.Right,
                     color = colorResource(R.color.brown_rusty),
                     fontSize = 14.sp,
@@ -252,8 +275,8 @@ class MainActivity : ComponentActivity() {
 
     @Preview(showBackground = true)
     @Composable
-    fun jugadorVista(){
-        jugador(
+    fun JugadorVista(){
+        Jugador(
             "Kath",
             "Programadora",
             26,
