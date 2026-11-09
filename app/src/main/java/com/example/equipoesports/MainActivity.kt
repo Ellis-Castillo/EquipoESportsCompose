@@ -4,11 +4,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.annotation.DrawableRes
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -17,43 +14,42 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.text.TextAutoSize
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.colorResource
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import com.example.equipoesports.ui.theme.EquipoESportsTheme
 import java.util.UUID
 
@@ -63,33 +59,33 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            var listaJugadores = rememberSaveable { mutableStateListOf<Jugador>() }
-
-            listaJugadores.add(Jugador(
-                nombre = "Sharx",
-                nickname = "Trinchas",
-                rol = "Bárbara"
-                ))
-            listaJugadores.add(Jugador(
-                nombre = "Likura",
-                nickname = "Tiff",
-                rol = "Paladín"
-            ))
-            listaJugadores.add(Jugador(
-                nombre = "Marcus",
-                nickname = "Vex",
-                rol = "Brujo"
-            ))
-            listaJugadores.add(Jugador(
-                nombre = "Timaxius",
-                nickname = "Cáos",
-                rol = "Hechicero"
-            ))
-            listaJugadores.add(Jugador(
-                nombre = "Maigrika",
-                nickname = "Jefecita",
-                rol = "Bardo"
-            ))
+            val listaJugadores = remember { mutableStateListOf(
+                Jugador(
+                    nombre = "Sharx",
+                    nickname = "Trinchas",
+                    rol = "Bárbara"
+                ),
+                Jugador(
+                    nombre = "Likura",
+                    nickname = "Tiff",
+                    rol = "Paladín"
+                ),
+                Jugador(
+                    nombre = "Marcus",
+                    nickname = "Vex",
+                    rol = "Brujo"
+                ),
+                Jugador(
+                    nombre = "Timaxius",
+                    nickname = "Cáos",
+                    rol = "Hechicero"
+                ),
+                Jugador(
+                    nombre = "Maigrika",
+                    nickname = "Jefecita",
+                    rol = "Bardo"
+                )
+            ) }
 
             EquipoESportsTheme {
                 PantallaPrincipal(
@@ -99,6 +95,9 @@ class MainActivity : ComponentActivity() {
                     },
                     alEliminarJugador = {
                         listaJugadores.remove(it)
+                    },
+                    alEditarJugador = {
+                        jugador, i -> listaJugadores[i] = jugador
                     }
                 )
             }
@@ -107,115 +106,278 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     fun PantallaPrincipal(
-        listaJugadores: List<Jugador>,
+        listaJugadores: SnapshotStateList<Jugador>,
         alAgregarJugador: (Jugador) -> Unit,
-        alEliminarJugador: (Jugador) -> Unit
+        alEliminarJugador: (Jugador) -> Unit,
+        alEditarJugador: (Jugador, Int) -> Unit
     ){
         var modificandoJugadorExistente by rememberSaveable { mutableStateOf(false) }
         var nombreInput by rememberSaveable { mutableStateOf("") }
         var nicknameInput by rememberSaveable { mutableStateOf("") }
         var rolInput by rememberSaveable { mutableStateOf("") }
-        var idEnEdicion by rememberSaveable { mutableStateOf(UUID( 0 , 0 )) }
-        var jugadorEnEdicion by rememberSaveable { mutableStateOf(Jugador(UUID( 0 , 0 ), "","", "")) }
+        var idEnEdicion by remember { mutableStateOf<UUID?>(null) }
+        var jugadorEnEdicion by remember { mutableStateOf<Jugador?>(null) }
+        var abrirError by remember { mutableStateOf(false) }
+        var jugadorAEliminar by remember { mutableStateOf<Jugador?>(null) }
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
-                .background(colorResource(R.color.blue_bigboy))
-                .padding(horizontal = 6.dp)
+                .background(MaterialTheme.colorScheme.primaryContainer)
+                .padding(horizontal = 8.dp)
         ) {
-            TextoTitulo("TEAM TITANS")
+            Spacer( modifier = Modifier.height(8.dp) )
 
-            Spacer(modifier = Modifier
-                .height(12.dp))
+            TextoTitulo(
+                "TEAM TITANS",
+                color = MaterialTheme.colorScheme.primary,
+                style = MaterialTheme.typography.headlineLarge,
+                modifier = Modifier
+                    .background(
+                        color = MaterialTheme.colorScheme.inversePrimary,
+                        shape = RoundedCornerShape(25)
+                    )
+            )
+
+            Spacer( modifier = Modifier.height(8.dp) )
 
             if (modificandoJugadorExistente){
-                jugadorEnEdicion = listaJugadores[listaJugadores.indexOfFirst { it.id == idEnEdicion }]
-                FormularioEditarJugador(
-                    jugador = jugadorEnEdicion,
-                    cambioNombre = { nombreInput = it },
-                    cambioNickname = { nicknameInput = it },
-                    cambioRol = { rolInput = it }
-                )
-                Button(
-                    onClick = {
-                        jugadorEnEdicion.nombre = nombreInput
-                        jugadorEnEdicion.nickname = nicknameInput
-                        jugadorEnEdicion.rol = rolInput
-                        modificandoJugadorExistente = false
-                    }
-                ) {
-                    Text("Confirmar")
-                }
 
-            } else{
-                jugadorEnEdicion = FormularioNuevoJugador(
+                FormularioJugador(
                     nombreInput = nombreInput,
                     cambioNombre = { nombreInput = it },
                     nicknameInput = nicknameInput,
                     cambioNickname = { nicknameInput = it },
                     rolInput = rolInput,
-                    cambioRol = { rolInput = it }
+                    cambioRol = { rolInput = it },
+                    modifier = Modifier
+                )
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    Button(
+                        onClick = {
+                            if (
+                                nombreInput.isNotBlank()
+                                && nicknameInput.isNotBlank()
+                                && rolInput.isNotBlank()
+                            ){
+                                val jugadorActualizado = jugadorEnEdicion!!.copy(
+                                    nombre = nombreInput,
+                                    nickname = nicknameInput,
+                                    rol = rolInput
+                                )
+                                val indice = listaJugadores.indexOfFirst {
+                                    it.key == idEnEdicion
+                                }
+
+                                if (indice != -1) {
+                                    alEditarJugador(jugadorActualizado, indice)
+                                }
+
+                                idEnEdicion = null
+                                jugadorEnEdicion = null
+                                modificandoJugadorExistente = false
+                                nombreInput = ""
+                                nicknameInput = ""
+                                rolInput = ""
+
+                            } else{
+                                abrirError = true
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.secondary,
+                            contentColor = MaterialTheme.colorScheme.onSecondary
+                        )
+                    ) {
+                        Text("Confirmar")
+                    }
+                    Button(
+                        onClick = {
+                            nombreInput = ""
+                            nicknameInput = ""
+                            rolInput = ""
+                            modificandoJugadorExistente = false
+                            idEnEdicion = null
+                            jugadorEnEdicion = null
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.secondary,
+                            contentColor = MaterialTheme.colorScheme.onSecondary
+                        )
+                    ) {
+                        Text("Cancelar")
+                    }
+                }
+
+                TextoTitulo(
+                    "Editando Jugador",
+                    color = MaterialTheme.colorScheme.onTertiary,
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier
+                        .background(
+                            color = MaterialTheme.colorScheme.tertiary,
+                            shape = RoundedCornerShape(50)
+                        )
+                )
+
+                Spacer( modifier = Modifier.height(12.dp) )
+
+            } else{
+                FormularioJugador(
+                    nombreInput = nombreInput,
+                    cambioNombre = { nombreInput = it },
+                    nicknameInput = nicknameInput,
+                    cambioNickname = { nicknameInput = it },
+                    rolInput = rolInput,
+                    cambioRol = { rolInput = it },
+                    modifier = Modifier
                 )
                 Button(
-                    onClick = { alAgregarJugador(jugadorEnEdicion) }
+                    onClick = {
+                        if (
+                            nombreInput.isNotBlank()
+                            && nicknameInput.isNotBlank()
+                            && rolInput.isNotBlank()
+                        ){
+                            jugadorEnEdicion = Jugador(
+                                nombre = nombreInput,
+                                nickname = nicknameInput,
+                                rol = rolInput
+                            )
+                            alAgregarJugador(jugadorEnEdicion!!)
+                            nombreInput = ""
+                            nicknameInput = ""
+                            rolInput = ""
+                            jugadorEnEdicion = null
+                        } else{
+                            abrirError = true
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.secondary,
+                        contentColor = MaterialTheme.colorScheme.onSecondary
+                    ),
+                    modifier = Modifier
+                        .padding(bottom = 8.dp)
                 ) {
-                    Text("Confirmar")
+                    Text("Añadir Jugador")
                 }
 
             }
-            //JUGADORES
-            // - INFO
-            // - BOTONES MODIFICAR ELIMINAR
 
             LazyColumn(
                 modifier = Modifier
+                    .weight(1f)
                     .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.secondaryContainer)
+                    .padding(4.dp)
             ) {
                 items(
                     items = listaJugadores,
-                    key = {jugador -> jugador.id}
+                    key = { jugador -> jugador.key }
                 ){
                     jugador ->
                     FichaJugador(jugador = jugador)
-                    Row {
-                        BotonModificarJugador(
-                            modificarJugador = {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+
+                        BotonEditarJugador(
+                            editarJugador = {
+                                jugadorEnEdicion = jugador
+                                idEnEdicion = jugador.key
+
                                 nombreInput = jugador.nombre
                                 nicknameInput = jugador.nickname
                                 rolInput = jugador.rol
-                                idEnEdicion = jugador.id
+
                                 modificandoJugadorExistente = true
                             }
                         )
+
                         BotonEliminarJugador(
-                            alEliminar = { alEliminarJugador(jugador) }
+                            alEliminar = { jugadorAEliminar = jugador }
                         )
                     }
                 }
+            }
+
+            if (jugadorAEliminar != null) {
+                PedirConfirmacionEliminar(
+                    jugador = jugadorAEliminar!!,
+                    alEliminar = {
+                        alEliminarJugador(jugadorAEliminar!!)
+                        jugadorAEliminar = null
+                    },
+                    alCancelar = {
+                        jugadorAEliminar = null
+                    }
+                )
+            }
+
+            if (abrirError){
+                PopupError(
+                    onDismissRequest = {
+                        abrirError = false
+                    },
+                    "Error: Los campos no pueden estar vacíos"
+                )
             }
         }
     }
 
     @Composable
-    fun TextoTitulo(titulo: String){
+    fun PopupError(onDismissRequest: () -> Unit, mensaje: String){
+        Dialog(onDismissRequest = {onDismissRequest()}) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp)
+                    .padding(16.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                    contentColor = MaterialTheme.colorScheme.onErrorContainer
+                )
+            ) {
+                Text(
+                    text = mensaje,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .wrapContentSize(Alignment.Center),
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+    }
+
+    @Composable
+    fun TextoTitulo(
+        titulo: String,
+        color: Color,
+        style: TextStyle,
+        modifier: Modifier
+    ){
         Row(
             modifier = Modifier
                 .fillMaxWidth()
         ) {
             Text(
                 text = titulo,
-                color = MaterialTheme.colorScheme.primary,
-                style = MaterialTheme.typography.headlineLarge,
+                color = color,
+                style = style,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .padding(top = 32.dp, start = 16.dp, end = 16.dp)
-                    .background(
-                        colorResource(R.color.gray_neutralviolet),
-                        shape = RoundedCornerShape(25)
-                    )
+                modifier = modifier
+                    .padding(horizontal = 16.dp)
                     .weight(1f)
             )
         }
@@ -225,10 +387,10 @@ class MainActivity : ComponentActivity() {
     fun Separador(){
         HorizontalDivider(
             modifier = Modifier
-                .padding(6.dp)
-                .clip(shape = RoundedCornerShape(50)),
-            thickness = 12.dp,
-            colorResource(R.color.purple_cosmic)
+                .padding(bottom = 8.dp, start = 8.dp, end = 8.dp)
+                .clip(shape = RoundedCornerShape(75)),
+            thickness = 8.dp,
+            color = MaterialTheme.colorScheme.tertiary
         )
     }
 
@@ -239,13 +401,12 @@ class MainActivity : ComponentActivity() {
         Separador()
 
         Row(modifier = Modifier
-            .statusBarsPadding()
             .fillMaxWidth()
             .background(
-                colorResource(R.color.cream_tawnytan),
+                color = MaterialTheme.colorScheme.primary,
                 shape = RoundedCornerShape(50)
             )
-            .padding(horizontal = 6.dp)
+            .padding(start = 24.dp, end = 8.dp)
             .height(108.dp)
         ){
             Column(
@@ -257,14 +418,14 @@ class MainActivity : ComponentActivity() {
             ) {
                 Text(
                     text = jugador.nombre.uppercase(),
-                    color = colorResource(R.color.brown_rusty),
+                    color = MaterialTheme.colorScheme.onPrimary,
                     fontSize = 22.sp,
                     lineHeight = 22.sp,
                     maxLines = 1,
                 )
                 Text(
                     text = jugador.nickname,
-                    color = colorResource(R.color.brown_rusty),
+                    color = MaterialTheme.colorScheme.onSecondary,
                     fontSize = 12.sp,
                     lineHeight = 14.sp,
                     maxLines = 1,
@@ -289,7 +450,7 @@ class MainActivity : ComponentActivity() {
                 Text(
                     text = jugador.rol,
                     textAlign = TextAlign.Right,
-                    color = colorResource(R.color.brown_rusty),
+                    color = MaterialTheme.colorScheme.onSecondary,
                     fontSize = 18.sp,
                     fontStyle = FontStyle.Italic,
                     lineHeight = 22.sp,
@@ -303,105 +464,97 @@ class MainActivity : ComponentActivity() {
     fun BotonEliminarJugador(
         alEliminar: () -> Unit
     ){
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
+        Button(
+            onClick = alEliminar,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.secondary,
+                contentColor = MaterialTheme.colorScheme.onSecondary
+            )
         ) {
-            Button(
-                onClick = alEliminar
-            ) {
-                Text("Eliminar Jugador")
-            }
+            Text("Eliminar Jugador")
         }
     }
 
     @Composable
-    fun FormularioEditarJugador(
+    fun PedirConfirmacionEliminar(
         jugador: Jugador,
-        cambioNombre: (String) -> Unit,
-        cambioNickname: (String) -> Unit,
-        cambioRol: (String) -> Unit
+        alEliminar: () -> Unit,
+        alCancelar: () -> Unit
     ){
-
-        TextoEditable(
-            etiqueta = "Nombre",
-            valor = jugador.nombre,
-            cambioTexto = cambioNombre,
-            KeyboardOptions.Default.copy(
-                keyboardType = KeyboardType.Text,
-                imeAction = ImeAction.Next
-            ),
-            modifier = Modifier
-                .fillMaxWidth()
-        )
-        TextoEditable(
-            etiqueta = "Nickname",
-            valor = jugador.nickname,
-            cambioTexto = cambioNickname,
-            KeyboardOptions.Default.copy(
-                keyboardType = KeyboardType.Text,
-                imeAction = ImeAction.Next
-            ),
-            modifier = Modifier
-                .fillMaxWidth()
-        )
-        TextoEditable(
-            etiqueta = "Rol",
-            valor = jugador.rol,
-            cambioTexto = cambioRol,
-            KeyboardOptions.Default.copy(
-                keyboardType = KeyboardType.Text,
-                imeAction = ImeAction.Done
-            ),
-            modifier = Modifier
-                .fillMaxWidth()
+        AlertDialog(
+            onDismissRequest = alCancelar,
+            title = {
+                Text("Confirmar eliminación")
+            },
+            text = {
+                Text("¿Realmente deseas eliminar a ${jugador.nombre}?")
+            },
+            confirmButton = {
+                Button(
+                    onClick = alEliminar
+                ) {
+                    Text("Eliminar")
+                }
+            },
+            dismissButton = {
+                Button(
+                    onClick = alCancelar
+                ) {
+                    Text("Cancelar")
+                }
+            },
+            containerColor = MaterialTheme.colorScheme.errorContainer,
+            textContentColor = MaterialTheme.colorScheme.onErrorContainer,
+            titleContentColor = MaterialTheme.colorScheme.error
         )
     }
 
     @Composable
-    fun FormularioNuevoJugador(
+    fun FormularioJugador(
         nombreInput: String,
         cambioNombre: (String) -> Unit,
         nicknameInput: String,
         cambioNickname: (String) -> Unit,
         rolInput: String,
-        cambioRol: (String) -> Unit
-    ): Jugador{
-        TextoEditable(
-            etiqueta = "Nombre",
-            valor = nombreInput,
-            cambioTexto = cambioNombre,
-            KeyboardOptions.Default.copy(
-                keyboardType = KeyboardType.Text,
-                imeAction = ImeAction.Next
-            ),
-            modifier = Modifier
-                .fillMaxWidth()
-        )
-        TextoEditable(
-            etiqueta = "Nickname",
-            valor = nicknameInput,
-            cambioTexto = cambioNickname,
-            KeyboardOptions.Default.copy(
-                keyboardType = KeyboardType.Text,
-                imeAction = ImeAction.Next
-            ),
-            modifier = Modifier
-                .fillMaxWidth()
-        )
-        TextoEditable(
-            etiqueta = "Rol",
-            valor = rolInput,
-            cambioTexto = cambioRol,
-            KeyboardOptions.Default.copy(
-                keyboardType = KeyboardType.Text,
-                imeAction = ImeAction.Done
-            ),
-            modifier = Modifier
-                .fillMaxWidth()
-        )
+        cambioRol: (String) -> Unit,
+        modifier: Modifier
+    ) {
+        Column(
+            modifier = modifier
+        ) {
+            TextoEditable(
+                etiqueta = "Nombre",
+                valor = nombreInput,
+                cambioTexto = cambioNombre,
+                keyboardOptions = KeyboardOptions.Default.copy(
+                    keyboardType = KeyboardType.Text,
+                    imeAction = ImeAction.Next
+                ),
+                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+            )
 
-        return Jugador(nombre = nombreInput, nickname = nicknameInput, rol = rolInput)
+            TextoEditable(
+                etiqueta = "Nickname",
+                valor = nicknameInput,
+                cambioTexto = cambioNickname,
+                keyboardOptions = KeyboardOptions.Default.copy(
+                    keyboardType = KeyboardType.Text,
+                    imeAction = ImeAction.Next
+                ),
+                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+            )
+
+            TextoEditable(
+                etiqueta = "Rol",
+                valor = rolInput,
+                cambioTexto = cambioRol,
+                keyboardOptions = KeyboardOptions.Default.copy(
+                    keyboardType = KeyboardType.Text,
+                    imeAction = ImeAction.Done
+                ),
+                modifier = Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 8.dp)
+            )
+        }
     }
 
     @Composable
@@ -415,8 +568,7 @@ class MainActivity : ComponentActivity() {
         TextField(
             value = valor,
             onValueChange = cambioTexto,
-            modifier = modifier
-                .padding(bottom = 12.dp),
+            modifier = modifier,
             label = {
                 Text(etiqueta)
             },
@@ -426,24 +578,23 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    fun BotonModificarJugador(
-        //jugador: Jugador,
-        modificarJugador: () -> Unit
+    fun BotonEditarJugador(
+        editarJugador: () -> Unit
     ){
         Button(
-            onClick = {
-                modificarJugador()
-            },
-            modifier = Modifier
-                .fillMaxWidth()
+            onClick = editarJugador,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.secondary,
+                contentColor = MaterialTheme.colorScheme.onSecondary
+            )
         ) {
-            Text("Modificar")
+            Text("Editar Jugador")
         }
     }
 }
 
-data class Jugador constructor(
-    val id: UUID = UUID.randomUUID(), //Para ids automáticos
+data class Jugador(
+    val key: UUID = UUID.randomUUID(),
     var nombre: String,
     var nickname: String,
     var rol: String
