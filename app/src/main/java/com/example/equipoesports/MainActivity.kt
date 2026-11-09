@@ -24,23 +24,32 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -59,49 +68,56 @@ class MainActivity : ComponentActivity() {
             listaJugadores.add(Jugador(
                 nombre = "Sharx",
                 nickname = "Trinchas",
-                rol = "Bárbara",
-                edad = 38,
-                nivel = 18
+                rol = "Bárbara"
                 ))
             listaJugadores.add(Jugador(
                 nombre = "Likura",
                 nickname = "Tiff",
-                rol = "Paladín",
-                edad = 32,
-                nivel = 15
+                rol = "Paladín"
             ))
             listaJugadores.add(Jugador(
                 nombre = "Marcus",
                 nickname = "Vex",
-                rol = "Brujo",
-                edad = 42,
-                nivel = 16
+                rol = "Brujo"
             ))
             listaJugadores.add(Jugador(
                 nombre = "Timaxius",
                 nickname = "Cáos",
-                rol = "Hechicero",
-                edad = 34,
-                nivel = 15
+                rol = "Hechicero"
             ))
             listaJugadores.add(Jugador(
                 nombre = "Maigrika",
                 nickname = "Jefecita",
-                rol = "Bardo",
-                edad = 40,
-                nivel = 15
+                rol = "Bardo"
             ))
 
             EquipoESportsTheme {
-                PantallaPrincipal(listaJugadores)
+                PantallaPrincipal(
+                    listaJugadores,
+                    alAgregarJugador = {
+                        listaJugadores.add(it)
+                    },
+                    alEliminarJugador = {
+                        listaJugadores.remove(it)
+                    }
+                )
             }
         }
     }
 
     @Composable
     fun PantallaPrincipal(
-        listaJugadores: List<Jugador>
+        listaJugadores: List<Jugador>,
+        alAgregarJugador: (Jugador) -> Unit,
+        alEliminarJugador: (Jugador) -> Unit
     ){
+        var modificandoJugadorExistente by rememberSaveable { mutableStateOf(false) }
+        var nombreInput by rememberSaveable { mutableStateOf("") }
+        var nicknameInput by rememberSaveable { mutableStateOf("") }
+        var rolInput by rememberSaveable { mutableStateOf("") }
+        var idEnEdicion by rememberSaveable { mutableStateOf(UUID( 0 , 0 )) }
+        var jugadorEnEdicion by rememberSaveable { mutableStateOf(Jugador(UUID( 0 , 0 ), "","", "")) }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -111,7 +127,47 @@ class MainActivity : ComponentActivity() {
         ) {
             TextoTitulo("TEAM TITANS")
 
-            BotonAgregarJugador()
+            Spacer(modifier = Modifier
+                .height(12.dp))
+
+            if (modificandoJugadorExistente){
+                jugadorEnEdicion = listaJugadores[listaJugadores.indexOfFirst { it.id == idEnEdicion }]
+                FormularioEditarJugador(
+                    jugador = jugadorEnEdicion,
+                    cambioNombre = { nombreInput = it },
+                    cambioNickname = { nicknameInput = it },
+                    cambioRol = { rolInput = it }
+                )
+                Button(
+                    onClick = {
+                        jugadorEnEdicion.nombre = nombreInput
+                        jugadorEnEdicion.nickname = nicknameInput
+                        jugadorEnEdicion.rol = rolInput
+                        modificandoJugadorExistente = false
+                    }
+                ) {
+                    Text("Confirmar")
+                }
+
+            } else{
+                jugadorEnEdicion = FormularioNuevoJugador(
+                    nombreInput = nombreInput,
+                    cambioNombre = { nombreInput = it },
+                    nicknameInput = nicknameInput,
+                    cambioNickname = { nicknameInput = it },
+                    rolInput = rolInput,
+                    cambioRol = { rolInput = it }
+                )
+                Button(
+                    onClick = { alAgregarJugador(jugadorEnEdicion) }
+                ) {
+                    Text("Confirmar")
+                }
+
+            }
+            //JUGADORES
+            // - INFO
+            // - BOTONES MODIFICAR ELIMINAR
 
             LazyColumn(
                 modifier = Modifier
@@ -122,7 +178,21 @@ class MainActivity : ComponentActivity() {
                     key = {jugador -> jugador.id}
                 ){
                     jugador ->
-                    FichaJugador()
+                    FichaJugador(jugador = jugador)
+                    Row {
+                        BotonModificarJugador(
+                            modificarJugador = {
+                                nombreInput = jugador.nombre
+                                nicknameInput = jugador.nickname
+                                rolInput = jugador.rol
+                                idEnEdicion = jugador.id
+                                modificandoJugadorExistente = true
+                            }
+                        )
+                        BotonEliminarJugador(
+                            alEliminar = { alEliminarJugador(jugador) }
+                        )
+                    }
                 }
             }
         }
@@ -164,8 +234,7 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     fun FichaJugador(
-        jugador: Jugador,
-        @DrawableRes foto: Int
+        jugador: Jugador
     ){
         Separador()
 
@@ -179,21 +248,6 @@ class MainActivity : ComponentActivity() {
             .padding(horizontal = 6.dp)
             .height(108.dp)
         ){
-            Box(
-                modifier = Modifier
-                    .padding(horizontal = 16.dp)
-                    .fillMaxHeight()
-                    .weight(4f),
-                contentAlignment = Alignment.Center
-            ) {
-                Image(painter = painterResource(foto),
-                    contentDescription = jugador.nombre,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .clip(CircleShape)
-                        .size(56.dp)
-                )
-            }
             Column(
                 modifier = Modifier
                     .fillMaxHeight()
@@ -215,12 +269,6 @@ class MainActivity : ComponentActivity() {
                     lineHeight = 14.sp,
                     maxLines = 1,
                 )
-                Text(
-                    text = "${jugador.edad} años",
-                    color = colorResource(R.color.brown_rusty),
-                    fontSize = 12.sp,
-                    lineHeight = 14.sp
-                )
             }
 
             Spacer(Modifier.weight(1f))
@@ -239,7 +287,7 @@ class MainActivity : ComponentActivity() {
                 horizontalAlignment = Alignment.End
             ) {
                 Text(
-                    text = rol,
+                    text = jugador.rol,
                     textAlign = TextAlign.Right,
                     color = colorResource(R.color.brown_rusty),
                     fontSize = 18.sp,
@@ -247,45 +295,156 @@ class MainActivity : ComponentActivity() {
                     lineHeight = 22.sp,
                     maxLines = 1,
                 )
-
-                Text(
-                    text = "Lvl$nivel",
-                    textAlign = TextAlign.Right,
-                    color = colorResource(R.color.brown_rusty),
-                    fontSize = 14.sp,
-                    lineHeight = 14.sp
-                )
             }
         }
     }
 
     @Composable
-    fun BotonAgregarJugador(
-        alAgregar: () -> Unit,
-        alEliminar: () -> Unit,
+    fun BotonEliminarJugador(
+        alEliminar: () -> Unit
     ){
         Row(
             modifier = Modifier
                 .fillMaxWidth()
         ) {
             Button(
-                onClick = alAgregar
+                onClick = alEliminar
             ) {
-                Text("Añadir Jugador")
+                Text("Eliminar Jugador")
             }
         }
     }
 
     @Composable
-    fun BotonesFichaJugador(){} //TODO
+    fun FormularioEditarJugador(
+        jugador: Jugador,
+        cambioNombre: (String) -> Unit,
+        cambioNickname: (String) -> Unit,
+        cambioRol: (String) -> Unit
+    ){
+
+        TextoEditable(
+            etiqueta = "Nombre",
+            valor = jugador.nombre,
+            cambioTexto = cambioNombre,
+            KeyboardOptions.Default.copy(
+                keyboardType = KeyboardType.Text,
+                imeAction = ImeAction.Next
+            ),
+            modifier = Modifier
+                .fillMaxWidth()
+        )
+        TextoEditable(
+            etiqueta = "Nickname",
+            valor = jugador.nickname,
+            cambioTexto = cambioNickname,
+            KeyboardOptions.Default.copy(
+                keyboardType = KeyboardType.Text,
+                imeAction = ImeAction.Next
+            ),
+            modifier = Modifier
+                .fillMaxWidth()
+        )
+        TextoEditable(
+            etiqueta = "Rol",
+            valor = jugador.rol,
+            cambioTexto = cambioRol,
+            KeyboardOptions.Default.copy(
+                keyboardType = KeyboardType.Text,
+                imeAction = ImeAction.Done
+            ),
+            modifier = Modifier
+                .fillMaxWidth()
+        )
+    }
+
+    @Composable
+    fun FormularioNuevoJugador(
+        nombreInput: String,
+        cambioNombre: (String) -> Unit,
+        nicknameInput: String,
+        cambioNickname: (String) -> Unit,
+        rolInput: String,
+        cambioRol: (String) -> Unit
+    ): Jugador{
+        TextoEditable(
+            etiqueta = "Nombre",
+            valor = nombreInput,
+            cambioTexto = cambioNombre,
+            KeyboardOptions.Default.copy(
+                keyboardType = KeyboardType.Text,
+                imeAction = ImeAction.Next
+            ),
+            modifier = Modifier
+                .fillMaxWidth()
+        )
+        TextoEditable(
+            etiqueta = "Nickname",
+            valor = nicknameInput,
+            cambioTexto = cambioNickname,
+            KeyboardOptions.Default.copy(
+                keyboardType = KeyboardType.Text,
+                imeAction = ImeAction.Next
+            ),
+            modifier = Modifier
+                .fillMaxWidth()
+        )
+        TextoEditable(
+            etiqueta = "Rol",
+            valor = rolInput,
+            cambioTexto = cambioRol,
+            KeyboardOptions.Default.copy(
+                keyboardType = KeyboardType.Text,
+                imeAction = ImeAction.Done
+            ),
+            modifier = Modifier
+                .fillMaxWidth()
+        )
+
+        return Jugador(nombre = nombreInput, nickname = nicknameInput, rol = rolInput)
+    }
+
+    @Composable
+    fun TextoEditable(
+        etiqueta: String,
+        valor: String,
+        cambioTexto: (String) -> Unit,
+        keyboardOptions: KeyboardOptions,
+        modifier: Modifier = Modifier
+    ){
+        TextField(
+            value = valor,
+            onValueChange = cambioTexto,
+            modifier = modifier
+                .padding(bottom = 12.dp),
+            label = {
+                Text(etiqueta)
+            },
+            singleLine = true,
+            keyboardOptions = keyboardOptions,
+        )
+    }
+
+    @Composable
+    fun BotonModificarJugador(
+        //jugador: Jugador,
+        modificarJugador: () -> Unit
+    ){
+        Button(
+            onClick = {
+                modificarJugador()
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+        ) {
+            Text("Modificar")
+        }
+    }
 }
 
-//DEBERÍA ELIMINAR LOS ATRIBUTOS DE LA PRÁCTICA ANTERIO?????????
 data class Jugador constructor(
     val id: UUID = UUID.randomUUID(), //Para ids automáticos
-    val nombre: String,
-    val nickname: String,
-    val rol: String,
-    var edad: Int, //Estos dos atributos son heredados de Jugador de la actividad anterior
-    var nivel: Int
+    var nombre: String,
+    var nickname: String,
+    var rol: String
 )
